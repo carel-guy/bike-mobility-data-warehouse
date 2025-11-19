@@ -15,7 +15,9 @@ from streamlit_helpers import (
     net_change_chart,
     prepare_snapshot_table,
     station_activity_table,
+    station_health_scatter,
     top_station_trend_chart,
+    turnover_vs_capacity_chart,
     utilization_distribution_chart,
     weekday_hour_heatmap,
 )
@@ -179,6 +181,27 @@ else:
         ].set_index("station_id"),
         use_container_width=True,
         height=360,
+    )
+
+st.divider()
+
+# ------------- Additional visuals -------------
+st.subheader("🎨 Visualisations complémentaires")
+vis_col1, vis_col2 = st.columns(2)
+if snapshot_table.empty:
+    vis_col1.info("Aucune donnée de snapshot pour afficher la santé des stations.")
+else:
+    vis_col1.plotly_chart(
+        station_health_scatter(snapshot_table, critical_threshold),
+        use_container_width=True,
+    )
+
+if history_df.empty:
+    vis_col2.info("Le graphique de turn-over nécessite un historique.")
+else:
+    vis_col2.plotly_chart(
+        turnover_vs_capacity_chart(history_df, limit=max(10, top_n)),
+        use_container_width=True,
     )
 
 st.divider()

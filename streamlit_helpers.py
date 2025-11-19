@@ -395,6 +395,73 @@ def top_station_trend_chart(df, limit=3):
     return fig
 
 
+def station_health_scatter(snapshot, critical_threshold=3):
+    if snapshot.empty:
+        return px.scatter(title="💠 Santé des stations (aucune donnée)")
+
+    data = snapshot.copy()
+    data["capacity"] = data["free_bikes"] + data["empty_slots"]
+    data["capacity"] = data["capacity"].replace(0, 1)
+    data["utilization_pct"] = data["free_bikes"] / data["capacity"]
+    data["etat"] = np.where(
+        data["free_bikes"] <= critical_threshold, "Sous seuil", "Confort"
+    )
+
+    fig = px.scatter(
+        data,
+        x="empty_slots",
+        y="free_bikes",
+        size="capacity",
+        color="utilization_pct",
+        hover_name="name",
+        title="💠 Santé instantanée des stations",
+        labels={"empty_slots": "Bornes libres", "free_bikes": "Vélos disponibles"},
+        color_continuous_scale="Tealrose",
+    )
+    fig.update_layout(
+        margin=dict(l=10, r=10, t=50, b=20),
+        coloraxis_colorbar=dict(title="Utilisation"),
+    )
+    fig.add_hline(
+        y=critical_threshold,
+        line_dash="dot",
+        line_color="#d64f4f",
+        annotation_text="Seuil critique",
+        annotation_position="top right",
+    )
+    return fig
+
+
+def turnover_vs_capacity_chart(df, limit=40):
+    if df.empty:
+        return px.scatter(title="📊 Activité vs capacité (aucune donnée)")
+
+    summary = station_activity_table(df, limit=limit)
+    if summary.empty:
+        return px.scatter(title="📊 Activité vs capacité (aucune donnée)")
+
+    fig = px.scatter(
+        summary,
+        x="avg_bikes",
+        y="turnover_rate",
+        size="total_moves",
+        color="avg_empty_slots",
+        hover_name="name",
+        title="📊 Turn-over vs stock moyen",
+        labels={
+            "avg_bikes": "Vélos moyens",
+            "turnover_rate": "Turn-over moyen",
+            "avg_empty_slots": "Bornes moyennes",
+        },
+        color_continuous_scale="Bluered",
+    )
+    fig.update_layout(
+        margin=dict(l=10, r=10, t=50, b=30),
+        coloraxis_colorbar=dict(title="Bornes moyennes"),
+    )
+    return fig
+
+
 def prepare_snapshot_table(snapshot):
     if snapshot.empty:
         return pd.DataFrame(
