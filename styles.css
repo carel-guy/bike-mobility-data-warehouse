@@ -1,0 +1,30 @@
+/* GENERAL PAGE */
+body {
+    font-family: 'Inter', sans-serif;
+}
+
+/* TITLES */
+.title {
+    font-size: 38px;
+    font-weight: 800;
+    color: #1a2b4c;
+    padding-bottom: 20px;
+}
+
+/* KPI METRICS */
+[data-testid="metric-container"] {
+    background: white;
+    border-radius: 10px;
+    border: 1px solid #e5e5e5;
+    padding: 20px;
+    box-shadow: 0px 2px 6px rgba(0,0,0,0.06);
+}
+
+.block-container {
+    padding-top: 2rem;
+}
+
+/* SIDEBAR */
+.css-1d391kg {
+    background-color: #f8f9fb !important;
+}
