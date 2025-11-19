@@ -82,6 +82,20 @@ history_df = filter_by_time(df, window_hours)
 snapshot_table = prepare_snapshot_table(snapshot)
 full_snapshot = snapshot_table.copy()
 
+ANOMALY_WINDOW_MINUTES = 15
+ANOMALY_ACTIVITY_THRESHOLD = 5
+ANOMALY_STATIC_THRESHOLD = 1
+
+if history_df.empty:
+    anomalies_df = None
+else:
+    anomalies_df = detect_static_bikes(
+        history_df,
+        window_minutes=ANOMALY_WINDOW_MINUTES,
+        activity_threshold=ANOMALY_ACTIVITY_THRESHOLD,
+        static_threshold=ANOMALY_STATIC_THRESHOLD,
+    )
+
 # ------------- KPIs -------------
 metrics = compute_capacity_metrics(snapshot_table)
 top_station, movement = compute_most_active(history_df)
@@ -289,6 +303,16 @@ else:
             key="station_search_select",
         )
         station_snapshot = snapshot_table[snapshot_table["name"] == selected_station].iloc[0]
+        station_id = station_snapshot["station_id"]
+        if (
+            anomalies_df is not None
+            and not anomalies_df.empty
+            and station_id in anomalies_df["station_id"].values
+        ):
+            st.markdown(
+                "<div class='badge-alert'>🛠️ Station signalée : vélos potentiellement bloqués</div>",
+                unsafe_allow_html=True,
+            )
         capacity = station_snapshot["free_bikes"] + station_snapshot["empty_slots"]
         util_pct = (
             station_snapshot["free_bikes"] / capacity if capacity else 0
@@ -303,18 +327,36 @@ else:
         if history_df.empty:
             st.info("Aucun historique pour la fenêtre choisie.")
         else:
-            st.plotly_chart(
-                station_history_chart(history_df, selected_station),
-                width="stretch",
-            )
-            recent_history = (
+            history_station = (
                 history_df[history_df["name"] == selected_station]
-                .sort_values("timestamp", ascending=False)
-                .head(20)
+                .sort_values("timestamp")
             )
-            if recent_history.empty:
-                st.info("Pas de mesures récentes pour cette station sur la période.")
+            if history_station.empty:
+                st.info(
+                    "Pas de mesures enregistrées pour cette station sur la période sélectionnée."
+                )
             else:
+                below_share = float(
+                    (history_station["free_bikes"] <= critical_threshold).mean()
+                )
+                above_share = max(0.0, 1 - below_share)
+                share_cols = st.columns(2)
+                share_cols[0].metric(
+                    "Temps sous le seuil",
+                    f"{below_share * 100:.0f}%",
+                )
+                share_cols[1].metric(
+                    "Temps au-dessus du seuil",
+                    f"{above_share * 100:.0f}%",
+                )
+
+                st.plotly_chart(
+                    station_history_chart(history_station, selected_station),
+                    width="stretch",
+                )
+                recent_history = (
+                    history_station.sort_values("timestamp", ascending=False).head(20)
+                )
                 st.dataframe(
                     recent_history[
                         ["timestamp", "free_bikes", "empty_slots"]
@@ -347,23 +389,17 @@ st.divider()
 
 # ------------- Broken bike detection -------------
 st.subheader("🚨 Suspicion de vélos défectueux")
-if history_df.empty:
+if anomalies_df is None:
     st.info("Sélectionnez une fenêtre historique plus large pour activer l'analyse.")
 else:
-    anomalies = detect_static_bikes(
-        history_df,
-        window_minutes=15,
-        activity_threshold=5,
-        static_threshold=1,
-    )
-    if anomalies.empty:
+    if anomalies_df.empty:
         st.success("Aucune station active ne présente de vélos potentiellement bloqués.")
     else:
         st.warning(
             "Certaines stations restent actives mais leur stock ne bouge plus : vigilance maintenance."
         )
         anomaly_snapshot = snapshot_table[["station_id", "free_bikes", "empty_slots"]]
-        anomalies = anomalies.merge(
+        anomalies = anomalies_df.merge(
             anomaly_snapshot, on="station_id", how="left"
         )
         anomalies.rename(

@@ -63,3 +63,4 @@ Ce pattern s’applique à tout cas d’usage de détection d’anomalies opéra
 
 - Les scripts enregistrent leur activité dans `logs/`.
 - Les erreurs/états critiques sont visibles dans les logs et via les KPI “Stations sous le seuil”.
+- **Historique enrichi** : la section « Recherche de station » peut indiquer le temps passé sous/sur le seuil et afficher un badge si la station figure parmi les anomalies « vélo bloqué », pour relier la vue détaillée à l’analyse globale.

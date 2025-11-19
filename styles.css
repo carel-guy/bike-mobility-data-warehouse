@@ -144,3 +144,16 @@ h1, h2, h3, h4 {
     border-radius: 50%;
     display: inline-block;
 }
+
+.badge-alert {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: rgba(214, 79, 79, 0.12);
+    border: 1px solid rgba(214, 79, 79, 0.4);
+    color: #a61b1b;
+    border-radius: 999px;
+    padding: 0.25rem 0.9rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
