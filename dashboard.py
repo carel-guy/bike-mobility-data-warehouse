@@ -18,6 +18,7 @@ from streamlit_helpers import (
     prepare_snapshot_table,
     station_activity_table,
     station_health_scatter,
+    station_history_chart,
     top_station_trend_chart,
     turnover_vs_capacity_chart,
     utilization_distribution_chart,
@@ -123,7 +124,7 @@ else:
     map_df = snapshot_table.copy()
     map_df["capacity"] = (map_df["free_bikes"] + map_df["empty_slots"]).replace(0, 1)
     map_df["utilization_pct"] = map_df["free_bikes"] / map_df["capacity"]
-    map_df["radius"] = map_df["capacity"].clip(2, 30) * 1.5
+    map_df["radius"] = map_df["capacity"].clip(1, 20) * 1.0
 
     def color_from_util(pct):
         pct = max(0, min(1, pct))
@@ -173,6 +174,20 @@ else:
             ),
             tooltip=tooltip,
         )
+    )
+
+    st.markdown(
+        """
+        <div class="map-legend">
+            <span class="legend-title">Disponibilité</span>
+            <div class="legend-scale">
+                <span><i style="background: rgb(220,60,50);"></i>Faible</span>
+                <span><i style="background: rgb(135,135,85);"></i>Moyenne</span>
+                <span><i style="background: rgb(70,210,130);"></i>Confort</span>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
 
 st.divider()
@@ -249,6 +264,62 @@ else:
         ].set_index("station_id"),
         height=360,
     )
+
+st.divider()
+
+# ------------- Station search -------------
+st.subheader("🔎 Recherche de station")
+if snapshot_table.empty:
+    st.info("Aucune station disponible dans le snapshot actuel.")
+else:
+    station_names = sorted(snapshot_table["name"].unique())
+    search_query = st.text_input("Rechercher une station par nom", "")
+    if search_query:
+        filtered_names = [n for n in station_names if search_query.lower() in n.lower()]
+    else:
+        filtered_names = station_names
+
+    if not filtered_names:
+        st.warning("Aucune station ne correspond à cette recherche.")
+    else:
+        selected_station = st.selectbox(
+            "Sélectionnez une station",
+            filtered_names,
+            key="station_search_select",
+        )
+        station_snapshot = snapshot_table[snapshot_table["name"] == selected_station].iloc[0]
+        capacity = station_snapshot["free_bikes"] + station_snapshot["empty_slots"]
+        util_pct = (
+            station_snapshot["free_bikes"] / capacity if capacity else 0
+        )
+
+        info_cols = st.columns(4)
+        info_cols[0].metric("Vélos disponibles", int(station_snapshot["free_bikes"]))
+        info_cols[1].metric("Bornes libres", int(station_snapshot["empty_slots"]))
+        info_cols[2].metric("Capacité", int(capacity))
+        info_cols[3].metric("Disponibilité", f"{util_pct:.0%}")
+
+        if history_df.empty:
+            st.info("Aucun historique pour la fenêtre choisie.")
+        else:
+            st.plotly_chart(
+                station_history_chart(history_df, selected_station),
+                width="stretch",
+            )
+            recent_history = (
+                history_df[history_df["name"] == selected_station]
+                .sort_values("timestamp", ascending=False)
+                .head(20)
+            )
+            if recent_history.empty:
+                st.info("Pas de mesures récentes pour cette station sur la période.")
+            else:
+                st.dataframe(
+                    recent_history[
+                        ["timestamp", "free_bikes", "empty_slots"]
+                    ].set_index("timestamp"),
+                    height=300,
+                )
 
 st.divider()
 

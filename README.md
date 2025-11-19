@@ -51,6 +51,3 @@ Une application Streamlit moderne pour surveiller en temps réel le réseau VCUB
 
 - Les scripts enregistrent leur activité dans `logs/`.
 - Les erreurs/états critiques sont visibles dans les logs et via les KPI “Stations sous le seuil”.
-
-
-

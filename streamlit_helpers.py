@@ -416,6 +416,26 @@ def top_station_trend_chart(df, limit=3):
     return fig
 
 
+def station_history_chart(df, station_name):
+    history = df[df["name"] == station_name].sort_values("timestamp")
+    if history.empty:
+        return px.line(title=f"📈 Historique – {station_name} (aucune donnée)")
+
+    fig = px.line(
+        history,
+        x="timestamp",
+        y="free_bikes",
+        title=f"📈 Historique – {station_name}",
+        markers=True,
+    )
+    fig.update_layout(
+        margin=dict(l=10, r=10, t=50, b=20),
+        hovermode="x unified",
+    )
+    fig.update_yaxes(title="Vélos disponibles")
+    return fig
+
+
 def station_health_scatter(snapshot, critical_threshold=3):
     if snapshot.empty:
         return px.scatter(title="💠 Santé des stations (aucune donnée)")
