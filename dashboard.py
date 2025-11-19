@@ -12,6 +12,7 @@ from streamlit_helpers import (
     compute_capacity_metrics,
     compute_most_active,
     filter_by_time,
+    detect_static_bikes,
     get_latest_snapshot,
     load_station_data,
     net_change_chart,
@@ -341,6 +342,46 @@ else:
         turnover_vs_capacity_chart(history_df, limit=max(10, top_n)),
         width="stretch",
     )
+
+st.divider()
+
+# ------------- Broken bike detection -------------
+st.subheader("🚨 Suspicion de vélos défectueux")
+if history_df.empty:
+    st.info("Sélectionnez une fenêtre historique plus large pour activer l'analyse.")
+else:
+    anomalies = detect_static_bikes(
+        history_df,
+        window_minutes=15,
+        activity_threshold=5,
+        static_threshold=1,
+    )
+    if anomalies.empty:
+        st.success("Aucune station active ne présente de vélos potentiellement bloqués.")
+    else:
+        st.warning(
+            "Certaines stations restent actives mais leur stock ne bouge plus : vigilance maintenance."
+        )
+        anomaly_snapshot = snapshot_table[["station_id", "free_bikes", "empty_slots"]]
+        anomalies = anomalies.merge(
+            anomaly_snapshot, on="station_id", how="left"
+        )
+        anomalies.rename(
+            columns={
+                "total_movement": "Mouvements (fenêtre)",
+                "recent_min": "Min réc.",
+                "recent_max": "Max réc.",
+                "recent_range": "Amplitude",
+                "sample_count": "Échantillons",
+                "free_bikes": "Vélos actuels",
+                "empty_slots": "Bornes actuelles",
+            },
+            inplace=True,
+        )
+        st.dataframe(
+            anomalies.set_index("station_id"),
+            height=320,
+        )
 
 st.divider()
 

@@ -436,6 +436,65 @@ def station_history_chart(df, station_name):
     return fig
 
 
+def detect_static_bikes(
+    df,
+    window_minutes=15,
+    activity_threshold=5,
+    static_threshold=1,
+):
+    columns = [
+        "station_id",
+        "name",
+        "total_movement",
+        "recent_min",
+        "recent_max",
+        "recent_range",
+        "sample_count",
+    ]
+
+    if df.empty:
+        return pd.DataFrame(columns=columns)
+
+    df_sorted = df.sort_values(["station_id", "timestamp"]).copy()
+    df_sorted["movement"] = (
+        df_sorted.groupby("station_id")["free_bikes"].diff().abs().fillna(0)
+    )
+
+    activity = (
+        df_sorted.groupby(["station_id", "name"])["movement"]
+        .sum()
+        .reset_index(name="total_movement")
+    )
+
+    cutoff = df_sorted["timestamp"].max() - pd.Timedelta(minutes=window_minutes)
+    recent = df_sorted[df_sorted["timestamp"] >= cutoff]
+    if recent.empty:
+        return pd.DataFrame(columns=columns)
+
+    recent_agg = (
+        recent.groupby(["station_id", "name"])
+        .agg(
+            recent_min=("free_bikes", "min"),
+            recent_max=("free_bikes", "max"),
+            sample_count=("free_bikes", "count"),
+        )
+        .reset_index()
+    )
+    recent_agg["recent_range"] = (
+        recent_agg["recent_max"] - recent_agg["recent_min"]
+    )
+
+    merged = recent_agg.merge(activity, on=["station_id", "name"], how="left")
+    merged["total_movement"] = merged["total_movement"].fillna(0)
+
+    flagged = merged[
+        (merged["total_movement"] >= activity_threshold)
+        & (merged["recent_range"] <= static_threshold)
+    ].copy()
+
+    return flagged[columns]
+
+
 def station_health_scatter(snapshot, critical_threshold=3):
     if snapshot.empty:
         return px.scatter(title="💠 Santé des stations (aucune donnée)")

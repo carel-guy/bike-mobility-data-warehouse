@@ -47,6 +47,18 @@ Une application Streamlit moderne pour surveiller en temps réel le réseau VCUB
   - tendances historiques (ligne + heatmap).
 - **Classements** : top stations par mouvements, tableau des mouvements moyens.
 
+## 🧠 Défi avancé : détecter les vélos potentiellement défectueux
+
+> Objectif : tirer parti des séries temporelles pour repérer les vélos qui resteraient bloqués dans des stations pourtant actives, signe possible d’une panne ou d’un abandon. Cette approche illustre comment l’ingénierie de données alimente l’intelligence opérationnelle.
+
+1. **Hypothèse** : une station active voit régulièrement des retraits et retours. Si le stock ne baisse jamais pendant une période prolongée (ex. > 15 min) alors que l’activité alentour est forte, certains vélos sont peut-être inutilisables.
+2. **Statistiques glissantes** : calculer pour chaque station un indicateur de `turnover` (variation absolue des vélos) sur une fenêtre mobile.
+3. **Stations très actives** : filtrer celles dont le turnover moyen dépasse un seuil (# mouvements/minute).
+4. **Détection** : repérer dans ces stations les intervalles où `free_bikes` reste quasi constant (écart < 1) malgré le statut « actif ».
+5. **Alertes & visualisation** : envoyer une notification (logs, Slack, etc.) et afficher les anomalies (icône spéciale sur la carte, badge dans le tableau).
+
+Ce pattern s’applique à tout cas d’usage de détection d’anomalies opérationnelles : on quantifie le comportement normal, puis on scrute les écarts persistants qui méritent l’œil humain.
+
 ## 🛡️ Logs & supervision
 
 - Les scripts enregistrent leur activité dans `logs/`.
