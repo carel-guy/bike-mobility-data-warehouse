@@ -278,6 +278,27 @@ def capacity_donut_chart(snapshot):
     return fig
 
 
+def critical_split_donut(snapshot, critical_threshold=3):
+    if snapshot.empty:
+        values = [0, 0]
+    else:
+        under = int((snapshot["free_bikes"] <= critical_threshold).sum())
+        over = int((snapshot["free_bikes"] > critical_threshold).sum())
+        values = [under, over]
+
+    fig = px.pie(
+        names=["Sous seuil", "Confort"],
+        values=values,
+        hole=0.6,
+        title="🍩 Répartition des stations critiques",
+        color=["Sous seuil", "Confort"],
+        color_discrete_map={"Sous seuil": "#d64f4f", "Confort": "#1f77b4"},
+    )
+    fig.update_traces(textinfo="label+value")
+    fig.update_layout(margin=dict(l=10, r=10, t=50, b=10))
+    return fig
+
+
 # -------------------------
 # Additional tables & charts
 # -------------------------
@@ -434,11 +455,11 @@ def station_health_scatter(snapshot, critical_threshold=3):
 
 def turnover_vs_capacity_chart(df, limit=40):
     if df.empty:
-        return px.scatter(title="📊 Activité vs capacité (aucune donnée)")
+        return px.scatter(title="📊 Dynamique stations (aucune donnée)")
 
     summary = station_activity_table(df, limit=limit)
     if summary.empty:
-        return px.scatter(title="📊 Activité vs capacité (aucune donnée)")
+        return px.scatter(title="📊 Dynamique stations (aucune donnée)")
 
     fig = px.scatter(
         summary,
@@ -447,10 +468,10 @@ def turnover_vs_capacity_chart(df, limit=40):
         size="total_moves",
         color="avg_empty_slots",
         hover_name="name",
-        title="📊 Turn-over vs stock moyen",
+        title="📊 Dynamique des stations",
         labels={
             "avg_bikes": "Vélos moyens",
-            "turnover_rate": "Turn-over moyen",
+            "turnover_rate": "Indice de mouvement",
             "avg_empty_slots": "Bornes moyennes",
         },
         color_continuous_scale="Bluered",

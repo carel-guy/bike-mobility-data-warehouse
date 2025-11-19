@@ -104,3 +104,6 @@ h1, h2, h3, h4 {
 .stDivider {
     padding: 0 0 1.5rem 0;
 }
+[data-testid="stDataFrame"] table {
+    font-size: 0.9rem;
+}

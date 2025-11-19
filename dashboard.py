@@ -1,5 +1,6 @@
 import math
 
+import pydeck as pdk
 import streamlit as st
 from streamlit_autorefresh import st_autorefresh
 
@@ -7,6 +8,7 @@ from streamlit_helpers import (
     activity_ranking,
     citywide_trend_chart,
     capacity_donut_chart,
+    critical_split_donut,
     compute_capacity_metrics,
     compute_most_active,
     filter_by_time,
@@ -101,9 +103,76 @@ col6.metric(
 )
 
 if not snapshot_table.empty:
-    donut_col, _ = st.columns([1.2, 2.8])
-    donut_col.plotly_chart(
-        capacity_donut_chart(snapshot_table), use_container_width=True
+    donut_col1, donut_col2 = st.columns(2)
+    donut_col1.plotly_chart(
+        capacity_donut_chart(snapshot_table),
+        width="stretch",
+    )
+    donut_col2.plotly_chart(
+        critical_split_donut(snapshot_table, critical_threshold),
+        width="stretch",
+    )
+
+st.divider()
+
+# ------------- Map -------------
+st.subheader("🗺️ Carte interactive des stations")
+if snapshot_table.empty:
+    st.info("Aucune donnée de localisation disponible pour ce snapshot.")
+else:
+    map_df = snapshot_table.copy()
+    map_df["capacity"] = (map_df["free_bikes"] + map_df["empty_slots"]).replace(0, 1)
+    map_df["utilization_pct"] = map_df["free_bikes"] / map_df["capacity"]
+    map_df["radius"] = map_df["capacity"].clip(2, 30) * 1.5
+
+    def color_from_util(pct):
+        pct = max(0, min(1, pct))
+        r = int(220 - 150 * pct)
+        g = int(60 + 150 * pct)
+        b = int(50 + 80 * pct)
+        return [r, g, b, 230]
+
+    map_df["color"] = map_df["utilization_pct"].apply(color_from_util)
+    center_lat = float(map_df["latitude"].mean())
+    center_lon = float(map_df["longitude"].mean())
+
+    tile_layer = pdk.Layer(
+        "TileLayer",
+        data=None,
+        get_tile_url="https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
+        tile_size=256,
+    )
+
+    stations_layer = pdk.Layer(
+        "ScatterplotLayer",
+        data=map_df,
+        get_position=["longitude", "latitude"],
+        get_radius="radius",
+        get_fill_color="color",
+        pickable=True,
+        radius_units="meters",
+        stroked=True,
+        get_line_color=[255, 255, 255],
+        line_width_min_pixels=1,
+        opacity=0.85,
+    )
+
+    tooltip = {
+        "html": "Station: <b>{name}</b><br/>Vélos: {free_bikes}<br/>Bornes: {empty_slots}",
+        "style": {"color": "white", "font-size": "13px"},
+    }
+
+    st.pydeck_chart(
+        pdk.Deck(
+            layers=[tile_layer, stations_layer],
+            initial_view_state=pdk.ViewState(
+                latitude=center_lat,
+                longitude=center_lon,
+                zoom=12.5,
+                pitch=45,
+            ),
+            tooltip=tooltip,
+        )
     )
 
 st.divider()
@@ -114,22 +183,22 @@ if history_df.empty:
     st.info("Aucune donnée historique dans la fenêtre sélectionnée.")
 else:
     trend_col, change_col = st.columns(2)
-    trend_col.plotly_chart(citywide_trend_chart(history_df), use_container_width=True)
-    change_col.plotly_chart(net_change_chart(history_df), use_container_width=True)
+    trend_col.plotly_chart(citywide_trend_chart(history_df), width="stretch")
+    change_col.plotly_chart(net_change_chart(history_df), width="stretch")
 
 dist_col, heat_col = st.columns(2)
 dist_col.plotly_chart(
-    utilization_distribution_chart(snapshot_table), use_container_width=True
+    utilization_distribution_chart(snapshot_table), width="stretch"
 )
 if history_df.empty:
     heat_col.info("La carte de chaleur nécessite des données historiques.")
 else:
-    heat_col.plotly_chart(weekday_hour_heatmap(history_df), use_container_width=True)
+    heat_col.plotly_chart(weekday_hour_heatmap(history_df), width="stretch")
 
 if not history_df.empty:
     st.plotly_chart(
         top_station_trend_chart(history_df, limit=min(5, top_n)),
-        use_container_width=True,
+        width="stretch",
     )
 
 st.divider()
@@ -161,7 +230,6 @@ else:
                 "utilization_pct",
             ]
         ].set_index("station_id"),
-        use_container_width=True,
         height=360,
     )
 
@@ -179,7 +247,6 @@ else:
                 "utilization_pct",
             ]
         ].set_index("station_id"),
-        use_container_width=True,
         height=360,
     )
 
@@ -193,7 +260,7 @@ if snapshot_table.empty:
 else:
     vis_col1.plotly_chart(
         station_health_scatter(snapshot_table, critical_threshold),
-        use_container_width=True,
+        width="stretch",
     )
 
 if history_df.empty:
@@ -201,7 +268,7 @@ if history_df.empty:
 else:
     vis_col2.plotly_chart(
         turnover_vs_capacity_chart(history_df, limit=max(10, top_n)),
-        use_container_width=True,
+        width="stretch",
     )
 
 st.divider()
@@ -245,7 +312,6 @@ else:
                 "longitude",
             ]
         ].set_index("station_id"),
-        use_container_width=True,
         height=420,
     )
     st.caption(f"Page {page}/{total_pages} – {total_rows} stations au total.")
@@ -259,11 +325,10 @@ if history_df.empty:
 else:
     leaderboard_df = station_activity_table(history_df, limit=top_n)
     chart_col, table_col = st.columns(2)
-    chart_col.plotly_chart(activity_ranking(history_df), use_container_width=True)
+    chart_col.plotly_chart(activity_ranking(history_df), width="stretch")
     table_col.markdown("##### Tableau des mouvements")
     table_col.dataframe(
         leaderboard_df.set_index("station_id"),
-        use_container_width=True,
         height=420,
     )
 
