@@ -1,30 +1,106 @@
-/* GENERAL PAGE */
-body {
-    font-family: 'Inter', sans-serif;
+/* Global theme tokens */
+:root {
+    --brand-primary: #0061ff;
+    --brand-dark: #0a1f44;
+    --brand-muted: #6b7695;
+    --surface: #ffffff;
+    --background: #f4f6fb;
 }
 
-/* TITLES */
-.title {
-    font-size: 38px;
-    font-weight: 800;
-    color: #1a2b4c;
-    padding-bottom: 20px;
-}
-
-/* KPI METRICS */
-[data-testid="metric-container"] {
-    background: white;
-    border-radius: 10px;
-    border: 1px solid #e5e5e5;
-    padding: 20px;
-    box-shadow: 0px 2px 6px rgba(0,0,0,0.06);
+.stApp {
+    background: var(--background);
+    font-family: "Inter", "SF Pro Display", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--brand-dark);
 }
 
 .block-container {
     padding-top: 2rem;
+    padding-bottom: 2.5rem;
 }
 
-/* SIDEBAR */
-.css-1d391kg {
-    background-color: #f8f9fb !important;
+/* Typography */
+h1, h2, h3, h4 {
+    font-weight: 700;
+    color: var(--brand-dark);
+}
+
+.workflow-card {
+    background: var(--surface);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 20px;
+    padding: 1.25rem;
+    min-height: 150px;
+    box-shadow: 0 15px 40px rgba(15, 23, 42, 0.08);
+}
+
+.workflow-title {
+    font-weight: 700;
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+    color: var(--brand-primary);
+}
+
+.workflow-card p {
+    color: var(--brand-muted);
+    font-size: 0.95rem;
+    line-height: 1.4;
+    margin: 0;
+}
+
+/* KPI cards */
+[data-testid="metric-container"] {
+    border-radius: 16px;
+    padding: 1.5rem;
+    background: var(--surface);
+    border: 1px solid rgba(10, 31, 68, 0.08);
+    box-shadow: 0px 10px 30px rgba(15, 23, 42, 0.06);
+}
+
+[data-testid="stMetricValue"] {
+    color: var(--brand-primary);
+    font-size: 1.8rem;
+    font-weight: 700;
+}
+
+[data-baseweb="tab-list"] {
+    gap: 0.75rem;
+}
+
+[data-baseweb="tab"] {
+    border-radius: 999px !important;
+    padding: 0.35rem 1.25rem !important;
+    font-weight: 600;
+    color: var(--brand-muted);
+    background: rgba(0, 97, 255, 0.08);
+}
+
+[data-baseweb="tab"][aria-selected="true"] {
+    background: var(--brand-primary);
+    color: #fff;
+}
+
+/* Sidebar */
+[data-testid="stSidebar"] {
+    background: #ffffff;
+    border-right: 1px solid rgba(10, 31, 68, 0.08);
+    box-shadow: 4px 0 24px rgba(15, 23, 42, 0.05);
+}
+
+[data-testid="stSidebar"] h1,
+[data-testid="stSidebar"] h2,
+[data-testid="stSidebar"] h3 {
+    color: var(--brand-dark);
+}
+
+/* Tables */
+[data-testid="stDataFrame"] {
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid rgba(10, 31, 68, 0.08);
+    box-shadow: 0px 15px 30px rgba(15, 23, 42, 0.08);
+}
+
+/* Divider spacing */
+.stDivider {
+    padding: 0 0 1.5rem 0;
 }
