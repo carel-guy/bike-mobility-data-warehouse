@@ -41,7 +41,7 @@ def compute_clusters(df, n_clusters=10):
 # KPI: Most active station (last 30 min)
 # -------------------------
 def compute_most_active(df):
-    cutoff = datetime.utcnow() - timedelta(minutes=30)
+    cutoff = pd.Timestamp.now(tz="UTC") - timedelta(minutes=30)
     last30 = df[df["timestamp"] >= cutoff]
 
     activity = (
