@@ -3,35 +3,32 @@ import time
 from datetime import datetime
 from dotenv import load_dotenv
 from scripts.fetch_stations import fetch_and_store
+from utils.logging_config import setup_logger
 
 load_dotenv()
 
 POLL_INTERVAL = int(os.getenv("POLL_INTERVAL", 300))
+logger = setup_logger("tracker_logger")
 
 def pretty_time():
     return datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
 
+
 if __name__ == "__main__":
-    print(f"🚀 VCUB Activity Tracker Started — interval = {POLL_INTERVAL}s")
-    print(f"⏱ Start Time: {pretty_time()}\n")
+    logger.info(f"VCUB Tracker Started — interval = {POLL_INTERVAL}s")
 
     while True:
-        start = time.time()
-        print(f"🔄 Fetching at {pretty_time()}...")
+        start_time = time.time()
+        logger.info(f"Fetching new snapshot at {pretty_time()}")
 
         try:
-            inserted_count = fetch_and_store(return_count=True)
-            # fetch_and_store should return number of stations inserted
-            print(f"   ✅ Inserted {inserted_count} station rows.")
+            count = fetch_and_store(return_count=True)
+            logger.info(f"Inserted {count} rows")
         except Exception as e:
-            print(f"❌ Error during fetch: {e}")
+            logger.error(f"Error fetching data: {e}")
 
-        duration = round(time.time() - start, 2)
-        print(f"⏲️ Fetch duration: {duration}s")
+        duration = round(time.time() - start_time, 2)
+        logger.info(f"Fetch duration: {duration}s")
 
-        if duration > 5:
-            print("⚠️ Warning: API response took longer than usual.")
-
-        print(f"😴 Sleeping for {POLL_INTERVAL} seconds...\n")
+        logger.info(f"Sleeping for {POLL_INTERVAL} seconds...\n")
         time.sleep(POLL_INTERVAL)
-
